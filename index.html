@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Star Wars TTRPG Lookup (Preloaded)</title>
+<style>
+  :root {
+    --bg:#0f1115;--panel:#171a21;--card:#1d212b;--text:#e5e7eb;
+    --muted:#9aa0aa;--accent:#6bb3ff;--accent-2:#9bffd6;
+    --chip:#2a3040;--chip-border:#3a4152;--border:#2a2f3a;--focus:#3b82f6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;}
+  header{position:sticky;top:0;z-index:30;
+    background:linear-gradient(to bottom,rgba(15,17,21,.95),rgba(15,17,21,.75));
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--border);}
+  .container{max-width:1100px;margin:0 auto;padding:16px;}
+  h1{font-size:20px;margin:0 0 6px;}
+  .muted{color:var(--muted)}
+  .controls{display:grid;gap:10px;margin-top:6px;}
+  .searchbar{display:grid;grid-template-columns:1fr 120px;gap:8px;}
+  input[type="text"],select,.btn{
+    padding:10px 12px;border-radius:8px;border:1px solid var(--border);
+    background:var(--panel);color:var(--text);font-size:14px;outline:none;}
+  input[type="text"]:focus,select:focus{border-color:var(--focus);
+    box-shadow:0 0 0 2px rgba(59,130,246,.2);}
+  .btn{background:var(--card);cursor:pointer;}
+  .row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+  main{padding:16px 0 80px;}
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(1,minmax(0,1fr));}
+  @media(min-width:680px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(min-width:980px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  .card{border:1px solid var(--border);border-radius:12px;background:var(--card);
+    padding:12px;display:grid;gap:8px;cursor:pointer;transition:transform .05s ease;}
+  .card:active{transform:scale(.995)}
+  .title{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .title h3{margin:0;font-size:16px}
+  .badge{font-size:11px;color:var(--accent-2);border:1px solid var(--chip-border);
+    background:var(--chip);padding:2px 8px;border-radius:999px;text-transform:uppercase;}
+  .meta{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--muted)}
+  .meta .chip{border:1px solid var(--chip-border);background:var(--chip);
+    padding:4px 7px;border-radius:999px;}
+  .desc{font-size:13px;line-height:1.35;color:#d6dae3;}
+  .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--chip-border);
+    background:var(--chip);font-size:12px}
+  .hr{height:1px;background:var(--border);border:0;}
+  .small{font-size:12px}
+  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:12px;padding:2px 6px;border-radius:6px;background:#0c0e12;
+    border:1px solid var(--border);color:var(--muted);}
+  a{color:var(--accent);text-decoration:none}
+
+  /* Details panel (drawer) */
+  .drawer {
+    position:fixed; top:0; right:0; height:100dvh; width:min(540px, 100vw);
+    background:var(--panel); border-left:1px solid var(--border);
+    transform:translateX(100%); transition:transform .2s ease;
+    z-index:50; display:grid; grid-template-rows:auto 1fr;
+    box-shadow: -12px 0 40px rgba(0,0,0,.35);
+  }
+  .drawer.open { transform:translateX(0); }
+  .drawer header { position:sticky; top:0; background:var(--panel); border-bottom:1px solid var(--border); }
+  .drawer .content { overflow:auto; padding:16px; }
+  .drawer h2 { margin:0; font-size:18px; }
+  .drawer .subtitle { font-size:12px; color:var(--muted); margin-top:4px; }
+  .close-btn {
+    background:transparent; border:1px solid var(--border); color:var(--text);
+    border-radius:8px; padding:6px 10px; cursor:pointer;
+  }
+  .upg-group { margin-top:14px; }
+  .upg-title { font-size:12px; text-transform:uppercase; letter-spacing:.4px; color:var(--accent-2); margin:0 0 6px; }
+  .upg { border:1px solid var(--border); background:var(--card); border-radius:10px; padding:8px 10px; margin-bottom:8px; }
+  .upg .row { display:flex; gap:8px; align-items:baseline; }
+  .upg .name { font-weight:600; }
+  .upg .cost { font-size:12px; color:var(--muted); }
+  .empty { color:var(--muted); font-size:13px; }
+  .two-col { display:grid; grid-template-columns: 1fr; gap:12px; }
+  @media(min-width:720px){ .two-col { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="container">
+    <h1>Star Wars TTRPG Lookup (Preloaded)</h1>
+    <p class="small muted">Loads data from <span class="kbd">data.js</span>. Double-click to open offline.</p>
+    <div class="controls">
+      <div class="searchbar">
+        <input id="q" type="text" placeholder="Search (e.g., 'tirade instant ranked')"/>
+        <button class="btn" id="clear">Clear</button>
+      </div>
+      <div class="row">
+        <select id="typeFilter">
+          <option value="">All Types</option>
+          <option value="Talent">Talent</option>
+          <option value="ForcePower">Force Power</option>
+        </select>
+        <select id="treeFilter"><option value="">Any Tree/Discipline</option></select>
+        <select id="activationFilter"><option value="">Any Activation</option></select>
+        <select id="rankedFilter">
+          <option value="">Ranked or Unranked</option>
+          <option value="Yes">Ranked</option>
+          <option value="No">Unranked</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <div class="small muted" style="margin-bottom:8px">Loaded: <span id="stats"></span></div>
+  <div id="grid" class="grid"></div>
+</main>
+
+<!-- Details Drawer -->
+<aside id="drawer" class="drawer" aria-hidden="true">
+  <header class="container" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+    <div>
+      <h2 id="d-title"></h2>
+      <div id="d-subtitle" class="subtitle"></div>
+    </div>
+    <button id="closeDrawer" class="close-btn" aria-label="Close (Esc)">Close</button>
+  </header>
+  <div class="content">
+    <div class="two-col">
+      <section>
+        <h3 class="upg-title">Overview</h3>
+        <div id="d-overview" class="desc"></div>
+        <div id="d-source" class="small muted" style="margin-top:8px;"></div>
+      </section>
+      <section>
+        <h3 class="upg-title">Quick Facts</h3>
+        <div id="d-facts" class="meta"></div>
+      </section>
+    </div>
+    <section id="upgrades-section" class="upg-group" style="display:none;">
+      <h3 class="upg-title">Upgrades</h3>
+      <div id="d-upgrades"></div>
+    </section>
+  </div>
+</aside>
+
+<footer class="container" style="padding-bottom:32px;">
+  <hr class="hr"/>
+  <p class="small muted">Keep <span class="kbd">index.preloaded.html</span> and <span class="kbd">data.js</span> in the same folder.</p>
+</footer>
+
+<script>
+// ---- Offline viewer logic with details + upgrades ----
+window.DB = window.DB || { talents: [], force_powers: [] };
+const state = { records: [], filters: {type:'',tree:'',activation:'',ranked:''}, selected: null };
+
+function escapeHTML(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+function card(r){
+  const el=document.createElement('div');el.className='card';el.tabIndex=0;el.setAttribute('role','button');
+  el.innerHTML=`
+    <div class="title"><h3>${escapeHTML(r.Name||'(Untitled)')}</h3>
+    <span class="badge">${escapeHTML(r.Type)}</span></div>
+    <div class="meta">
+      ${r.Tree?`<span class="chip">${escapeHTML(r.Tree)}</span>`:''}
+      ${r.Tier?`<span class="chip">Tier ${escapeHTML(r.Tier)}</span>`:''}
+      ${r.Activation?`<span class="chip">${escapeHTML(r.Activation)}</span>`:''}
+      ${r.Ranked?`<span class="chip">${escapeHTML(r.Ranked)}</span>`:''}
+    </div>
+    ${r.Summary?`<div class="desc">${escapeHTML(r.Summary)}</div>`:''}
+    <div class="footer">
+      ${r.Book?`<span class="pill">${escapeHTML(r.Book)}</span>`:''}
+      ${r.Page?`<span class="pill">${escapeHTML(r.Page)}</span>`:''}
+    </div>`;
+  el.addEventListener('click',()=>openDetails(r));
+  el.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openDetails(r); }});
+  return el;
+}
+
+function applyFilters(){
+  const q=document.getElementById('q').value.trim().toLowerCase();
+  const tokens=q?q.split(/\\s+/).filter(Boolean):[];
+  const {type,tree,activation,ranked}=state.filters;
+  const grid=document.getElementById('grid');grid.innerHTML='';
+  const res=state.records.filter(r=>{
+    if(type&&r.Type!==type)return false;
+    if(tree&&r.Tree!==tree)return false;
+    if(activation&&r.Activation!==activation)return false;
+    if(ranked&&r.Ranked!==ranked)return false;
+    if(tokens.length){
+      const hay=(r.Name+' '+r.Tree+' '+r.Tier+' '+r.Activation+' '+r.Ranked+' '+r.Summary+' '+r.Book).toLowerCase();
+      return tokens.every(t=>hay.includes(t));
+    }return true;
+  });
+  for(const r of res){ grid.appendChild(card(r)); }
+  document.getElementById('stats').textContent=`${res.length} / ${state.records.length} items`;
+}
+
+function renderOptions(){
+  const trees=new Set(),acts=new Set();
+  for(const r of state.records){if(r.Tree)trees.add(r.Tree);if(r.Activation)acts.add(r.Activation);}
+  const treeSel=document.getElementById('treeFilter');
+  treeSel.innerHTML='<option value="">Any Tree/Discipline</option>'+
+    [...trees].sort().map(v=>`<option>${escapeHTML(v)}</option>`).join('');
+  const actSel=document.getElementById('activationFilter');
+  actSel.innerHTML='<option value="">Any Activation</option>'+
+    [...acts].sort().map(v=>`<option>${escapeHTML(v)}</option>`).join('');
+}
+
+function unify(arr,type){
+  return arr.map(r=>({
+    Name:r.Name||'',
+    Type:type,
+    Tree:r.Tree||r.Discipline||'',
+    Tier:r.Tier||'',
+    Activation:r.Activation||'',
+    Ranked:r.Ranked||'',
+    Summary:r.Summary||'',
+    Book:r.Book||'',
+    Page:r.Page||'',
+    Upgrades:Array.isArray(r.Upgrades)?r.Upgrades.map(u=>({
+      Type:u.Type||u.Category||'',
+      Name:u.Name||'',
+      Cost:u.Cost||'',
+      Text:u.Text||u.Summary||''
+    })):[]
+  }));
+}
+
+function hydrate(){
+  const talents=window.DB.talents||[],powers=window.DB.force_powers||[];
+  state.records=[...unify(talents,'Talent'),...unify(powers,'ForcePower')];
+  renderOptions();applyFilters();
+}
+
+// ---- Details Drawer ----
+const drawer = document.getElementById('drawer');
+const dTitle = document.getElementById('d-title');
+const dSubtitle = document.getElementById('d-subtitle');
+const dOverview = document.getElementById('d-overview');
+const dFacts = document.getElementById('d-facts');
+const dSource = document.getElementById('d-source');
+const dUpgrades = document.getElementById('d-upgrades');
+const upgradesSection = document.getElementById('upgrades-section');
+
+function openDetails(r){
+  state.selected = r;
+  dTitle.textContent = r.Name || '(Untitled)';
+  dSubtitle.textContent = r.Type + (r.Tree? ' • '+r.Tree : '');
+  dOverview.innerHTML = r.Summary? escapeHTML(r.Summary) : '<span class="empty">No description</span>';
+  dFacts.innerHTML = [
+    r.Tier? `<span class="chip">Tier ${escapeHTML(r.Tier)}</span>`:'',
+    r.Activation? `<span class="chip">${escapeHTML(r.Activation)}</span>`:'',
+    r.Ranked? `<span class="chip">${escapeHTML(r.Ranked)}</span>`:''
+  ].filter(Boolean).join(' ');
+  dSource.textContent = [r.Book,r.Page?`p. ${r.Page}`:''].filter(Boolean).join(' • ');
+
+  // Upgrades
+  dUpgrades.innerHTML = '';
+  const groups = groupUpgrades(r.Upgrades||[]);
+  const order = ['Control','Range','Strength','Magnitude','Duration','Mastery','Other',''];
+  let hasAny = false;
+  for(const key of order){
+    const list = groups.get(key) || [];
+    if(!list.length) continue;
+    hasAny = true;
+    const sec = document.createElement('div');
+    sec.className='upg-group';
+    const h = document.createElement('h4'); h.className='upg-title'; h.textContent = key||'Upgrades';
+    sec.appendChild(h);
+    list.forEach(u=>{
+      const item = document.createElement('div'); item.className='upg';
+      item.innerHTML = `
+        <div class="row">
+          <div class="name">${escapeHTML(u.Name||'(Upgrade)')}</div>
+          ${u.Cost? `<div class="cost">Cost: ${escapeHTML(u.Cost)}</div>`:''}
+        </div>
+        ${u.Text? `<div class="desc" style="margin-top:6px">${escapeHTML(u.Text)}</div>`:''}
+      `;
+      sec.appendChild(item);
+    });
+    dUpgrades.appendChild(sec);
+  }
+  upgradesSection.style.display = hasAny ? '' : 'none';
+
+  drawer.classList.add('open');
+  drawer.setAttribute('aria-hidden','false');
+}
+
+function groupUpgrades(list){
+  const m = new Map();
+  list.forEach(u=>{
+    const t = (u.Type||'').trim();
+    const key = ['Control','Range','Strength','Magnitude','Duration','Mastery'].includes(t)? t : (t||'Other');
+    if(!m.has(key)) m.set(key, []);
+    m.get(key).push(u);
+  });
+  return m;
+}
+
+function closeDetails(){
+  drawer.classList.remove('open');
+  drawer.setAttribute('aria-hidden','true');
+  state.selected = null;
+}
+
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDetails(); });
+document.getElementById('closeDrawer').addEventListener('click', closeDetails);
+
+// ---- Wire up filters/search and start ----
+document.addEventListener('DOMContentLoaded',()=>{
+  ['type','tree','activation','ranked'].forEach(k=>{
+    document.getElementById(k+'Filter').addEventListener('change',e=>{
+      state.filters[k]=e.target.value;applyFilters();
+    });
+  });
+  document.getElementById('q').addEventListener('input',applyFilters);
+  document.getElementById('clear').addEventListener('click',()=>{
+    document.getElementById('q').value='';
+    Object.keys(state.filters).forEach(k=>state.filters[k]='');
+    document.querySelectorAll('select').forEach(s=>s.value='');
+    applyFilters();
+  });
+  hydrate();
+});
+</script>
+
+<script src="data.js"></script>
+</body>
+</html>
