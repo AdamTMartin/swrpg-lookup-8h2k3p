@@ -1,0 +1,47 @@
+# OS / system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# VS Code workspace files
+.vscode/
+.history/
+*.code-workspace
+
+# Node / package stuff (in case you experiment later)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+out/
+.env
+.env.*
+
+# Python (if you ever run your bundler locally)
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Archives / zips / exports
+*.zip
+*.tar
+*.gz
+
+# Backup or temporary files
+*~
+*.tmp
+*.bak
+*.swp
+
+# macOS / Finder metadata
+._*
+
+# Ignore generated CSV→JS output if you only commit final data
+data.js.bak
+
+# Python bundle artifacts
+bundle_csvs.py
+force_to_datajs.py
