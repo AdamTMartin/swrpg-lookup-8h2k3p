@@ -53,6 +53,12 @@
     border:1px solid var(--border);color:var(--muted);}
   a{color:var(--accent);text-decoration:none}
 
+  /* Tabs */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;}
+  .tab{border:1px solid var(--border);background:var(--card);color:var(--text);
+    padding:8px 10px;border-radius:999px;cursor:pointer;font-size:13px;}
+  .tab.active{border-color:var(--focus);box-shadow:0 0 0 2px rgba(59,130,246,.2) inset}
+
   /* Details panel (drawer) */
   .drawer {
     position:fixed; top:0; right:0; height:100dvh; width:min(540px, 100vw);
@@ -111,6 +117,14 @@
 
 <main class="container">
   <div class="small muted" style="margin-bottom:8px">Loaded: <span id="stats"></span></div>
+
+  <!-- Tabs -->
+  <div id="tabs" class="tabs">
+    <button class="tab active" data-tab="All">All</button>
+    <button class="tab" data-tab="Talent">Talents</button>
+    <button class="tab" data-tab="ForcePower">Force Powers</button>
+  </div>
+
   <div id="grid" class="grid"></div>
 </main>
 
@@ -144,11 +158,11 @@
 
 <footer class="container" style="padding-bottom:32px;">
   <hr class="hr"/>
-  <p class="small muted">Keep <span class="kbd">index.preloaded.html</span> and <span class="kbd">data.js</span> in the same folder.</p>
+  <p class="small muted">Keep <span class="kbd">index.html</span> and <span class="kbd">data.js</span> in the same folder.</p>
 </footer>
 
 <script>
-// ---- Offline viewer logic with details + upgrades ----
+// ---- Offline viewer logic with details + upgrades + tabs ----
 window.DB = window.DB || { talents: [], force_powers: [] };
 const state = { records: [], filters: {type:'',tree:'',activation:'',ranked:''}, selected: null };
 
@@ -164,6 +178,8 @@ function card(r){
       ${r.Tier?`<span class="chip">Tier ${escapeHTML(r.Tier)}</span>`:''}
       ${r.Activation?`<span class="chip">${escapeHTML(r.Activation)}</span>`:''}
       ${r.Ranked?`<span class="chip">${escapeHTML(r.Ranked)}</span>`:''}
+      ${r.ForceSensitive?`<span class="chip">Force Sensitive: ${escapeHTML(r.ForceSensitive)}</span>`:''}
+      ${r.Careers?`<span class="chip">${escapeHTML(r.Careers)}</span>`:''}
     </div>
     ${r.Summary?`<div class="desc">${escapeHTML(r.Summary)}</div>`:''}
     <div class="footer">
@@ -177,7 +193,7 @@ function card(r){
 
 function applyFilters(){
   const q=document.getElementById('q').value.trim().toLowerCase();
-  const tokens=q?q.split(/\\s+/).filter(Boolean):[];
+  const tokens=q?q.split(/\s+/).filter(Boolean):[];
   const {type,tree,activation,ranked}=state.filters;
   const grid=document.getElementById('grid');grid.innerHTML='';
   const res=state.records.filter(r=>{
@@ -186,7 +202,7 @@ function applyFilters(){
     if(activation&&r.Activation!==activation)return false;
     if(ranked&&r.Ranked!==ranked)return false;
     if(tokens.length){
-      const hay=(r.Name+' '+r.Tree+' '+r.Tier+' '+r.Activation+' '+r.Ranked+' '+r.Summary+' '+r.Book).toLowerCase();
+      const hay=(r.Name+' '+r.Tree+' '+r.Tier+' '+r.Activation+' '+r.Ranked+' '+r.Summary+' '+r.Book+' '+(r.ForceSensitive||'')+' '+(r.Careers||'')).toLowerCase();
       return tokens.every(t=>hay.includes(t));
     }return true;
   });
@@ -221,7 +237,10 @@ function unify(arr,type){
       Name:u.Name||'',
       Cost:u.Cost||'',
       Text:u.Text||u.Summary||''
-    })):[]
+    })) : [],
+    // pass through optional Talent-only fields if present
+    ForceSensitive: r.ForceSensitive || '',
+    Careers: r.Careers || ''
   }));
 }
 
@@ -249,7 +268,9 @@ function openDetails(r){
   dFacts.innerHTML = [
     r.Tier? `<span class="chip">Tier ${escapeHTML(r.Tier)}</span>`:'',
     r.Activation? `<span class="chip">${escapeHTML(r.Activation)}</span>`:'',
-    r.Ranked? `<span class="chip">${escapeHTML(r.Ranked)}</span>`:''
+    r.Ranked? `<span class="chip">${escapeHTML(r.Ranked)}</span>`:'',
+    r.ForceSensitive? `<span class="chip">Force Sensitive: ${escapeHTML(r.ForceSensitive)}</span>`:'',
+    r.Careers? `<span class="chip">${escapeHTML(r.Careers)}</span>`:''
   ].filter(Boolean).join(' ');
   dSource.textContent = [r.Book,r.Page?`p. ${r.Page}`:''].filter(Boolean).join(' • ');
 
@@ -305,11 +326,26 @@ function closeDetails(){
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDetails(); });
 document.getElementById('closeDrawer').addEventListener('click', closeDetails);
 
+// ---- Tabs: just set the Type filter and re-render ----
+const tabEls = Array.from(document.querySelectorAll('#tabs .tab'));
+function setTab(tab){
+  state.filters.type = (tab === 'All' ? '' : tab);
+  document.getElementById('typeFilter').value = state.filters.type;
+  tabEls.forEach(b => b.classList.toggle('active', b.getAttribute('data-tab')===tab));
+  applyFilters();
+}
+tabEls.forEach(btn => btn.addEventListener('click', () => setTab(btn.getAttribute('data-tab'))));
+
 // ---- Wire up filters/search and start ----
 document.addEventListener('DOMContentLoaded',()=>{
   ['type','tree','activation','ranked'].forEach(k=>{
     document.getElementById(k+'Filter').addEventListener('change',e=>{
       state.filters[k]=e.target.value;applyFilters();
+      // keep tabs in sync if Type changed via select
+      if(k==='type'){
+        const tab = state.filters.type || 'All';
+        setTab(tab);
+      }
     });
   });
   document.getElementById('q').addEventListener('input',applyFilters);
@@ -317,13 +353,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('q').value='';
     Object.keys(state.filters).forEach(k=>state.filters[k]='');
     document.querySelectorAll('select').forEach(s=>s.value='');
-    applyFilters();
+    setTab('All');
   });
   hydrate();
+  // ensure tabs reflect initial state
+  setTab('All');
 });
 </script>
 
 <script src="data.js"></script>
 </body>
 </html>
-
