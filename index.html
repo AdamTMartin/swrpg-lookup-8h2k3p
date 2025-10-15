@@ -89,12 +89,39 @@
   .empty { color:var(--muted); font-size:13px; }
   .two-col { display:grid; grid-template-columns: 1fr; gap:12px; }
   @media(min-width:720px){ .two-col { grid-template-columns: 1fr 1fr; } }
+
+  /* Chips: keep to content width, prevent stretching */
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;      /* prevents vertical stretching */
+    justify-content: flex-start;  /* aligns all to left */
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .meta .chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--chip-border);
+    background: var(--chip);
+    white-space: nowrap;
+    flex: 0 0 auto;               /* chips size only to content */
+    height: auto;                 /* allow natural height */
+    line-height: 1.2;
+  }
+  .card {
+    align-items: start;           /* ensures top alignment across grid */
+  }
 </style>
 </head>
 <body>
 <header>
   <div class="container">
-    <h1>Star Wars TTRPG Lookup (Preloaded)</h1>
+    <h1>Star Wars TTRPG Lookup</h1>
     <p class="small muted">Loads data from <span class="kbd">data.js</span>. Double-click to open offline.</p>
     <div class="controls">
       <div class="searchbar">
